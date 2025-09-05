@@ -28,7 +28,10 @@ for field in popup_fields:
 centroid = gdf.union_all().centroid
 center_latlon = [centroid.y, centroid.x]
 
-# 8. Crear un mapa Folium y añadir algunas capas de teselas base
+# 8. Reemplazar todas las geometrías por sus centroides para manejar polígonos
+gdf['geometry'] = gdf['geometry'].centroid
+
+# 9. Crear un mapa Folium y añadir algunas capas de teselas base
 m = folium.Map(location=center_latlon, zoom_start=zoom_level, tiles=None)
 folium.TileLayer("CartoDB positron", name="CartoDB Positron").add_to(m)
 folium.TileLayer("OpenStreetMap", name="OpenStreetMap").add_to(m)
@@ -38,7 +41,7 @@ folium.TileLayer(
     attr="Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors",
 ).add_to(m)
 
-# 9. Añadir marcadores de paradas de autobús al mapa utilizando un plugin MarkerCluster
+# 10. Añadir marcadores de paradas de autobús al mapa utilizando un plugin MarkerCluster
 marker_cluster = MarkerCluster(name="Bus Stops (Cluster)").add_to(m)
 for _, row in gdf.iterrows():
     coords = row.geometry
@@ -48,7 +51,7 @@ for _, row in gdf.iterrows():
             popup=row.get("name", description),
         ).add_to(marker_cluster)
 
-# 10. Añadir una capa GeoJSON simple con marcadores circulares interactivos
+# 11. Añadir una capa GeoJSON simple con marcadores circulares interactivos
 interactive_layer = folium.GeoJson(
     gdf,
     name="Bus Stops (Points)", show=False,
@@ -59,7 +62,7 @@ interactive_layer = folium.GeoJson(
     popup=folium.GeoJsonPopup(fields=popup_fields, labels=True),
 ).add_to(m)
 
-# 11. Intentar obtener y mostrar el polígono del límite administrativo
+# 12. Intentar obtener y mostrar el polígono del límite administrativo
 #     OpenStreetMap utiliza la etiqueta "admin_level" para dichos límites:
 #     https://wiki.openstreetmap.org/wiki/Key:admin_level
 try:
@@ -72,8 +75,8 @@ try:
 except Exception:
     pass
 
-# 12. Permitir al usuario activar y desactivar las capas
+# 13. Permitir al usuario activar y desactivar las capas
 folium.LayerControl().add_to(m)
 
-# 13. Guardar el mapa en un archivo HTML
+# 14. Guardar el mapa en un archivo HTML
 m.save("index.html")
