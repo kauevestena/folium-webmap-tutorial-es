@@ -1,85 +1,84 @@
-# 📄 GitHub Actions Workflow: Publish Web Map
-
+# 📄 Flujo de trabajo de GitHub Actions: Publicar mapa web
 name: Publish Web Map
 
-# 🕒 Trigger the workflow daily at 03:00 UTC, on push, and allow manual runs
+# 🕒 Activa el flujo de trabajo diariamente a las 03:00 UTC, en cada push y permite ejecuciones manuales
 on:
   push:
   schedule:
-    - cron: '0 3 * * *'  # Runs daily at 03:00 UTC
+    - cron: '0 3 * * *'  # Se ejecuta diariamente a las 03:00 UTC
   workflow_dispatch:
 
-# 🔐 Set permissions for the workflow
+# 🔐 Establecer permisos para el flujo de trabajo
 permissions:
-  contents: write       # To push changes to the repository
-  pages: write          # To deploy to GitHub Pages
-  id-token: write       # Required for GitHub Pages deployment
+  contents: write       # Para enviar cambios al repositorio
+  pages: write          # Para desplegar en GitHub Pages
+  id-token: write       # Requerido para el despliegue en GitHub Pages
 
-# 🛠️ Define the jobs to be run
+# 🛠️ Definir los trabajos a ejecutar
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 📥 Step 1: Checkout the repository code
+      # 📥 Paso 1: Clonar el código del repositorio
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for git operations
+          fetch-depth: 0  # Obtener el historial completo para operaciones de git
 
-      # 🐍 Step 2: Set up Python environment
+      # 🐍 Paso 2: Configurar el entorno de Python
       - name: Set Up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # Specify the Python version
+          python-version: '3.11'  # Especificar la versión de Python
 
-      # 📦 Step 3: Install Python dependencies
+      # 📦 Paso 3: Instalar dependencias de Python
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
 
-      # 🗺️ Step 4: Generate the web map
+      # 🗺️ Paso 4: Generar el mapa web
       - name: Generate Map
         run: |
-          python make_map.py  # Run the script to create index.html in the 'map' directory
+          python make_map.py  # Ejecutar el script para crear index.html en el directorio 'map'
 
-      # ⚙️ Step 5: Configure Git for committing changes
+      # ⚙️ Paso 5: Configurar Git para confirmar cambios
       - name: Configure Git
         run: |
-          git config user.name "${{ github.actor }}"  # Set Git username
-          git config user.email "${{ github.actor }}@users.noreply.github.com"  # Set Git email
+          git config user.name "${{ github.actor }}"  # Establecer nombre de usuario de Git
+          git config user.email "${{ github.actor }}@users.noreply.github.com"  # Establecer correo electrónico de Git
 
-      # 🔄 Step 6: Pull latest changes to prevent non-fast-forward errors
+      # 🔄 Paso 6: Obtener los últimos cambios para evitar errores de non-fast-forward
       - name: Pull Latest Changes
         run: |
-          git pull origin main  # Update local branch with remote changes
+          git pull origin main  # Actualizar la rama local con los cambios remotos
 
-      # 💾 Step 7: Commit and push changes
+      # 💾 Paso 7: Confirmar y enviar cambios
       - name: Commit and Push Changes
         run: |
           git add . 
           git commit -m "Update index.html with latest map data" || echo "No changes to commit"
-          git push origin main  # Push changes to the repository
+          git push origin main  # Enviar cambios al repositorio
 
-      # 📤 Step 8: Upload the 'map' directory as an artifact for deployment
+      # 📤 Paso 8: Subir el directorio 'map' como un artefacto para el despliegue
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          name: github-pages  # Name of the artifact
-          path: ./  # Directory to upload
+          name: github-pages  # Nombre del artefacto
+          path: ./  # Directorio a subir
 
   deploy:
-    # 🚀 Deployment job depends on the 'build' job
+    # 🚀 El trabajo de despliegue depende del trabajo de 'build'
     needs: build
     runs-on: ubuntu-latest
 
-    # 🌐 Define the deployment environment
+    # 🌐 Definir el entorno de despliegue
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}  # URL of the deployed site
+      url: ${{ steps.deployment.outputs.page_url }}  # URL del sitio desplegado
 
     steps:
-      # 🚀 Step 9: Deploy the uploaded artifact to GitHub Pages
+      # 🚀 Paso 9: Desplegar el artefacto subido en GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
