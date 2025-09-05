@@ -1,0 +1,85 @@
+# 📄 GitHub Actions Workflow: Publish Web Map
+
+name: Publish Web Map
+
+# 🕒 Trigger the workflow daily at 03:00 UTC, on push, and allow manual runs
+on:
+  push:
+  schedule:
+    - cron: '0 3 * * *'  # Runs daily at 03:00 UTC
+  workflow_dispatch:
+
+# 🔐 Set permissions for the workflow
+permissions:
+  contents: write       # To push changes to the repository
+  pages: write          # To deploy to GitHub Pages
+  id-token: write       # Required for GitHub Pages deployment
+
+# 🛠️ Define the jobs to be run
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 📥 Step 1: Checkout the repository code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for git operations
+
+      # 🐍 Step 2: Set up Python environment
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # Specify the Python version
+
+      # 📦 Step 3: Install Python dependencies
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # 🗺️ Step 4: Generate the web map
+      - name: Generate Map
+        run: |
+          python make_map.py  # Run the script to create index.html in the 'map' directory
+
+      # ⚙️ Step 5: Configure Git for committing changes
+      - name: Configure Git
+        run: |
+          git config user.name "${{ github.actor }}"  # Set Git username
+          git config user.email "${{ github.actor }}@users.noreply.github.com"  # Set Git email
+
+      # 🔄 Step 6: Pull latest changes to prevent non-fast-forward errors
+      - name: Pull Latest Changes
+        run: |
+          git pull origin main  # Update local branch with remote changes
+
+      # 💾 Step 7: Commit and push changes
+      - name: Commit and Push Changes
+        run: |
+          git add . 
+          git commit -m "Update index.html with latest map data" || echo "No changes to commit"
+          git push origin main  # Push changes to the repository
+
+      # 📤 Step 8: Upload the 'map' directory as an artifact for deployment
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: github-pages  # Name of the artifact
+          path: ./  # Directory to upload
+
+  deploy:
+    # 🚀 Deployment job depends on the 'build' job
+    needs: build
+    runs-on: ubuntu-latest
+
+    # 🌐 Define the deployment environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}  # URL of the deployed site
+
+    steps:
+      # 🚀 Step 9: Deploy the uploaded artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
